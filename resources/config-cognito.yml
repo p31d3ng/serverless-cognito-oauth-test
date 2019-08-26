@@ -5,7 +5,7 @@ Resources:
     Properties:
       ServiceToken:
         Fn::GetAtt:
-          - ConfigureCognitoLambdaFunction
+          - ConfigureCognitoLambdaFunction # the logical ID in CF stack, which is the capitalized function name in serverless.yml + 'LambdaFunction'
           - Arn
       UserPoolID:
         Ref: CognitoUserPool

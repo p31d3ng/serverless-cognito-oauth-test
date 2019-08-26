@@ -13,21 +13,29 @@ Resources:
       Policies:
         - PolicyName: ${self:custom.projectName}-${self:custom.stage}-cognito-policy
           PolicyDocument:
-                Version: '2012-10-17'
-                Statement:
-                  - Effect: Allow
-                    Action:
-                      - logs:CreateLogStream
-                      - logs:PutLogEvents
-                    Resource: 
-                      - 'Fn::Join':
-                        - ':'
-                        -
-                          - 'arn:aws:logs'
-                          - Ref: 'AWS::Region'
-                          - Ref: 'AWS::AccountId'
-                          - 'log-group:/aws/lambda/*:*:*'
-                  - Effect: Allow
-                    Action:
-                      - cognito-idp:*
-                    Resource: '*'
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - "Fn::Join":
+                      - ":"
+                      - - "arn:aws:logs"
+                        - Ref: "AWS::Region"
+                        - Ref: "AWS::AccountId"
+                        - "log-group:/aws/lambda/*:*:*"
+              - Effect: Allow
+                Action:
+                  - cognito-idp:*
+                Resource:
+                  - "Fn::Join":
+                      - ":"
+                      - - "arn:aws:cognito-idp"
+                        - Ref: "AWS::Region"
+                        - Ref: "AWS::AccountId"
+                        - "Fn::Join":
+                            - "/"
+                            - - "userpool"
+                              - Ref: CognitoUserPool

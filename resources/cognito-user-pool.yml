@@ -8,6 +8,7 @@ Resources:
       AutoVerifiedAttributes:
         - email
 
+  # Set up an app client for website frontend
   CognitoUserPoolWebClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -22,7 +23,7 @@ Outputs:
   UserPoolId:
     Value:
       Ref: CognitoUserPool
-  
+
   UserPoolWebClientId:
     Value:
       Ref: CognitoUserPoolWebClient

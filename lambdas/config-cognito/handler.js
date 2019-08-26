@@ -7,28 +7,30 @@ const ALLOWED_OATUH_SCOPES = ['admin:full'];
 const USER_POOL_REF = "UserPoolID";
 
 module.exports.handler = async (event, context) => {
-    const cognito_isp = new AWS.CognitoIdentityServiceProvider({apiVersion: '2016-04-18', region: process.env.REGION});
+    const cognito_isp = new AWS.CognitoIdentityServiceProvider({ apiVersion: '2016-04-18', region: process.env.REGION });
 
+    // Args passed in from CF template are stored in event.ResourceProperties
+    if (!(USER_POOL_REF in event.ResourceProperties)) {
+        return await sendResponse(event, context, "FAILED", USER_POOL_REF + " is required in properties!");
+    }
+
+    // We need to delete the cognito domain before CF removes the user pool, otherwise user pool removal will fail.
     if (event.RequestType === "Delete") {
         await delete_domain(event.ResourceProperties[USER_POOL_REF], cognito_isp);
         return await sendResponse(event, context, "SUCCESS", "SUCCESS");
     }
-
-    if (!(USER_POOL_REF in event.ResourceProperties)) {
-        return await sendResponse(event, context, "FAILED", USER_POOL_REF + " is required in properties!");
-    }        
 
     try {
         const rslt = await Promise.all([
             oauth_client_exists(event.ResourceProperties[USER_POOL_REF], cognito_isp),
             get_current_domain(event.ResourceProperties[USER_POOL_REF], cognito_isp)
         ]);
-        console.log("check result: " + rslt);
+        // console.log("check result: " + rslt);
         const promises = [];
         if (!rslt[0]) {
             promises.push(configure_oauth(event.ResourceProperties[USER_POOL_REF], cognito_isp));
         }
-        if (typeof rslt[1]  === "undefined") {
+        if (typeof rslt[1] === "undefined") {
             promises.push(setup_domain(event.ResourceProperties[USER_POOL_REF], cognito_isp));
         }
         if (promises.length === 0) {
@@ -44,14 +46,14 @@ module.exports.handler = async (event, context) => {
 };
 
 const oauth_client_exists = async (user_pool_id, cognito_isp) => {
-    const user_pool_clients = await cognito_isp.listUserPoolClients({UserPoolId: user_pool_id}).promise();
+    const user_pool_clients = await cognito_isp.listUserPoolClients({ UserPoolId: user_pool_id }).promise();
     const exists = user_pool_clients.UserPoolClients.findIndex(x => x.ClientName === process.env.OAUTH_CLIENT_NAME);
     if (exists === -1) return false;
     return true;
 };
 
 const get_current_domain = async (user_pool_id, cognito_isp) => {
-    const user_pool_details = await cognito_isp.describeUserPool({UserPoolId: user_pool_id}).promise();
+    const user_pool_details = await cognito_isp.describeUserPool({ UserPoolId: user_pool_id }).promise();
     return user_pool_details.UserPool.Domain;
 };
 
@@ -78,7 +80,7 @@ const create_resource_server = async (user_pool_id, cognito_isp) => {
         UserPoolId: user_pool_id,
         Identifier: RESOURCE_SERVER_NAME,
         Name: RESOURCE_SERVER_NAME,
-        Scopes: RESOURCE_SCOPES.map(x => ({ScopeDescription: x, ScopeName: x}))
+        Scopes: RESOURCE_SCOPES.map(x => ({ ScopeDescription: x, ScopeName: x }))
     };
     return cognito_isp.createResourceServer(param).promise();
 };
@@ -108,17 +110,18 @@ const generateUID = () => {
     return firstPart + secondPart;
 };
 
+// For sending custom resource updates to AWS Cloudformation to fail/success fast!
 const sendResponse = async (
     event,
     context,
     responseStatus,
     responseData,
     physicalResourceId
-  ) => {
+) => {
     const reason =
-      responseStatus == "FAILED" ?
-        "See the details in CloudWatch Log Stream: " + context.logStreamName : undefined;
-  
+        responseStatus == "FAILED" ?
+            "See the details in CloudWatch Log Stream: " + context.logStreamName : undefined;
+
     const responseBody = JSON.stringify({
         StackId: event.StackId,
         RequestId: event.RequestId,
@@ -130,27 +133,27 @@ const sendResponse = async (
             content: responseData
         }
     });
-  
+
     const responseOptions = {
         headers: {
             "Content-Type": "",
             "Content-Length": responseBody.length
         }
     };
-  
+
     console.info("Response body:\n", responseBody);
-  
+
     try {
         await axios.put(event.ResponseURL, responseBody, responseOptions);
         console.info("CloudFormationSendResponse Success");
     } catch (error) {
         console.error("CloudFormationSendResponse Error:");
         if (error.response) {
-                console.error(error.response);
+            console.error(error.response);
         } else if (error.request) {
-                console.error(error.request);
+            console.error(error.request);
         } else {
-                console.error("Error", error.message);
+            console.error("Error", error.message);
         }
         console.error(error.config);
         throw new Error("Could not send CloudFormation response");
