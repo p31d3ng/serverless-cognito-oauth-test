@@ -11,13 +11,14 @@ provider:
   stage: ply
   region: us-west-2
   memorySize: 256
+  timeout: 10
 
 functions:
   configureCognito:
     handler: lambdas/config-cognito/handler.handler
     role: CognitoCustomRole
     environment:
-      OAUTH_CLIENT_NAME: ${self:custom.projectName}-oauth-client
+      OAUTH_CLIENT_NAME: ${self:custom.projectName}-${self:custom.stage}-oauth-client
       DOMAIN_PREFIX: ${self:custom.domainPrefix}
       REGION: ${self:provider.region}
 

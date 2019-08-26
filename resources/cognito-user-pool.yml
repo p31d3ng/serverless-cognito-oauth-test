@@ -7,20 +7,22 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
-  
-  CognitoUserPoolClient:
+
+  CognitoUserPoolWebClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: ${self:custom.projectName}-${self:custom.stage}-client
+      ClientName: ${self:custom.projectName}-${self:custom.stage}-web-client
       UserPoolId:
         Ref: CognitoUserPool
-      GenerateSecret: true
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ADMIN_NO_SRP_AUTH
 
 Outputs:
   UserPoolId:
     Value:
       Ref: CognitoUserPool
-
-  UserPoolClientId:
+  
+  UserPoolWebClientId:
     Value:
-      Ref: CognitoUserPoolClient
+      Ref: CognitoUserPoolWebClient

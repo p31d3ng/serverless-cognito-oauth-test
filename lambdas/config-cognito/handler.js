@@ -7,22 +7,23 @@ const ALLOWED_OATUH_SCOPES = ['admin:full'];
 const USER_POOL_REF = "UserPoolID";
 
 module.exports.handler = async (event, context) => {
+    const cognito_isp = new AWS.CognitoIdentityServiceProvider({apiVersion: '2016-04-18', region: process.env.REGION});
+
     if (event.RequestType === "Delete") {
+        await delete_domain(event.ResourceProperties[USER_POOL_REF], cognito_isp);
         return await sendResponse(event, context, "SUCCESS", "SUCCESS");
     }
 
     if (!(USER_POOL_REF in event.ResourceProperties)) {
         return await sendResponse(event, context, "FAILED", USER_POOL_REF + " is required in properties!");
     }        
-    
-    const cognito_isp = new AWS.CognitoIdentityServiceProvider({apiVersion: '2016-04-18', region: process.env.REGION});
 
     try {
         const rslt = await Promise.all([
             oauth_client_exists(event.ResourceProperties[USER_POOL_REF], cognito_isp),
             get_current_domain(event.ResourceProperties[USER_POOL_REF], cognito_isp)
         ]);
-        // console.log(rslt, event.ResourceProperties);
+        console.log("check result: " + rslt);
         const promises = [];
         if (!rslt[0]) {
             promises.push(configure_oauth(event.ResourceProperties[USER_POOL_REF], cognito_isp));
@@ -88,6 +89,15 @@ const setup_domain = async (user_pool_id, cognito_isp) => {
         UserPoolId: user_pool_id
     };
     return cognito_isp.createUserPoolDomain(param).promise();
+};
+
+const delete_domain = async (user_pool_id, cognito_isp) => {
+    const user_pool_domain = await get_current_domain(user_pool_id, cognito_isp);
+    const param = {
+        Domain: user_pool_domain,
+        UserPoolId: user_pool_id
+    };
+    return cognito_isp.deleteUserPoolDomain(param).promise();
 };
 
 const generateUID = () => {
