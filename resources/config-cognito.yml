@@ -1,0 +1,11 @@
+Resources:
+  SetupCognitoOAuth:
+    Type: Custom::SetupCognitoOAuth
+    DependsOn: [CognitoUserPool, CognitoUserPoolClient]
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - ConfigureCognitoLambdaFunction
+          - Arn
+      UserPoolID:
+        Ref: CognitoUserPool

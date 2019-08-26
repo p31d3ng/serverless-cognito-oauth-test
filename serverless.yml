@@ -1,0 +1,27 @@
+service: cognito-oauth-test
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  projectName: cognito-oauth-test
+  domainPrefix: p31d3ng-oauth
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: ply
+  region: us-west-2
+  memory: 256
+
+functions:
+  configureCognito:
+    handler: lambdas/config-cognito/handler.handler
+    role: CognitoCustomRole
+    environment:
+      OAUTH_CLIENT_NAME: ${self:custom.projectName}-oauth-client
+      DOMAIN_PREFIX: ${self:custom.domainPrefix}
+      REGION: ${self:provider.region}
+
+resources:
+  - ${file(resources/cognito-user-pool.yml)}
+  - ${file(resources/config-cognito-role-policy.yml)}
+  - ${file(resources/config-cognito.yml)}  
